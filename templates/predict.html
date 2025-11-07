@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-3">Prediction</h2>
+
+{% if not fields %}
+<div class="alert alert-warning">
+  Could not infer feature names from <code>scaler.joblib</code>. Make sure the scaler was saved with
+  scikit-learn &gt;= 1.0 so it has <code>feature_names_in_</code>.
+</div>
+{% else %}
+
+<!-- Prefill from CSV row -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-3">
+      <div class="flex-grow-1">
+        <label class="form-label mb-1">Load values from CSV row</label>
+        <div class="input-group">
+          <span class="input-group-text">Row #</span>
+          <input id="row-index-input" class="form-control" type="number" min="0" step="1" placeholder="e.g. 0">
+          <button id="btn-load-row" class="btn btn-outline-primary" type="button">Load &amp; Fill</button>
+        </div>
+        <div class="form-text">
+          Uses your original dataset at the server path configured in <code>CSV_PATH</code>.
+        </div>
+      </div>
+      <div id="row-load-status" class="text-muted small"></div>
+    </div>
+  </div>
+</div>
+
+<form method="post" id="predict-form">
+  {% if has_category_text %}
+  <div class="alert alert-info">
+    <strong>Tip:</strong> You can provide <code>category_code</code> as a label (e.g. <em>web</em>, <em>software</em>)
+    using the box below. If you leave it empty, the numeric field will be used.
+  </div>
+  <div class="mb-3">
+    <label class="form-label">category_code (label)</label>
+    <input name="category_code_text" class="form-control" placeholder="e.g. web, software, mobile">
+  </div>
+  {% endif %}
+
+  <div class="row g-3">
+    {% for f in fields %}
+      <div class="col-md-4">
+        <label class="form-label">{{ f }}</label>
+        <input
+          class="form-control"
+          name="{{ f }}"
+          placeholder="0"
+          inputmode="decimal"
+          autocomplete="off"
+        >
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="d-flex gap-2 mt-4">
+    <button class="btn btn-primary">Predict</button>
+    <button class="btn btn-outline-secondary" type="button" id="btn-prefill">Prefill example</button>
+    <button class="btn btn-outline-danger" type="reset">Clear</button>
+  </div>
+</form>
+
+{% if prob is defined %}
+<hr class="my-4" />
+<div class="card border-success">
+  <div class="card-body">
+    <h5 class="card-title">Result</h5>
+    <p class="mb-1">
+      <strong>Probability of success:</strong> {{ "%.3f"|format(prob) }}
+    </p>
+    <p class="mb-0 text-muted">Threshold: 0.5 (>= 0.5 → “Closed/Not Acquired”, < 0.5 → “Acquired/Successful”)</p>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Inline JS to load CSV row and fill the form -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const loadBtn = document.getElementById("btn-load-row");
+  const idxInput = document.getElementById("row-index-input");
+  const statusEl = document.getElementById("row-load-status");
+
+  function setStatus(msg, ok=true) {
+    if (!statusEl) return;
+    statusEl.textContent = msg || "";
+    statusEl.classList.toggle("text-danger", !ok);
+    statusEl.classList.toggle("text-muted", ok);
+  }
+
+  if (loadBtn && idxInput) {
+    loadBtn.addEventListener("click", async () => {
+      const idx = idxInput.value.trim();
+      if (idx === "") {
+        setStatus("Please enter a row number.", false);
+        return;
+      }
+      setStatus("Loading row…");
+      try {
+        const res = await fetch(`/api/prefill_row/${encodeURIComponent(idx)}`, { credentials: "same-origin" });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error((data && data.error) || `HTTP ${res.status}`);
+        }
+        // Fill form fields
+        const vals = data.values || {};
+        Object.entries(vals).forEach(([k, v]) => {
+          const el = document.querySelector(`[name="${CSS.escape(k)}"]`);
+          if (el) el.value = v;
+        });
+        setStatus(`Loaded row #${idx}`);
+        // Optionally, auto-submit prediction:
+        // document.getElementById("predict-form").submit();
+      } catch (e) {
+        setStatus(`Failed: ${e.message}`, false);
+      }
+    });
+  }
+});
+</script>
+
+{% endblock %}
