@@ -20,7 +20,7 @@ ADMIN_PASS = os.environ.get("APP_ADMIN_PASS", "admin")
 MODEL_PATH = "startup_success_ann.keras"
 SCALER_PATH = "scaler.joblib"
 ENCODERS_PATH = "label_encoders.joblib"
-CSV_PATH = "startup data.csv"
+CSV_PATH = "startup_data.csv"
 
 
 # =========================
@@ -175,3 +175,4 @@ def predict():
 # =========================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
