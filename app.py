@@ -29,7 +29,7 @@ app = Flask(__name__)
 app.secret_key = APP_SECRET
 app.permanent_session_lifetime = timedelta(hours=6)
 
-CSV_PATH = r"startup data.csv"
+CSV_PATH = r"startup_data.csv"
 
 # =========================
 # Load model + preproc
@@ -215,4 +215,5 @@ def _features():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
