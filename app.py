@@ -1,4 +1,6 @@
 import os
+os.environ["KERAS_BACKEND"] = "numpy"   # ✅ Force Keras to run without TensorFlow
+
 import json
 import joblib
 import numpy as np
@@ -7,7 +9,7 @@ from functools import wraps
 from datetime import timedelta
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-from keras.models import load_model  # ✅ Replaced TensorFlow
+from keras.models import load_model 
 
 # =========================
 # Config
@@ -213,3 +215,4 @@ def _features():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
